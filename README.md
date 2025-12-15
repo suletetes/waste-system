@@ -1,5 +1,5 @@
 # Waste Management System
-
+-
 A comprehensive waste management system built with the MERN stack (MongoDB, Express.js, React, Node.js) that facilitates efficient coordination between residents, waste collectors, and administrators.
 
 ## Features
