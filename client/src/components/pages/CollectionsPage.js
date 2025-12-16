@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { collectionsAPI } from '../../services/api';
 import { Button, Card } from '../ui';
-import { AppLayout } from '../layout';
 import CollectionsList from '../dashboard/CollectionsList';
 import { theme } from '../../theme';
 
@@ -110,8 +109,7 @@ const CollectionsPage = () => {
   };
 
   return (
-    <AppLayout showBreadcrumbs={true}>
-      <div style={headerStyles}>
+    <div style={headerStyles}>
         <h1 style={titleStyles}>{getPageTitle()}</h1>
         <div style={{ display: 'flex', gap: theme.spacing[3] }}>
           {user?.role === 'resident' && (
@@ -202,7 +200,7 @@ const CollectionsPage = () => {
         loading={loading}
         onCollectionUpdate={loadCollections}
       />
-    </AppLayout>
+    </div>
   );
 };
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card } from '../ui';
-import { AppLayout } from '../layout';
 import { theme } from '../../theme';
 
 const SimplePage = ({ 
@@ -44,8 +43,7 @@ const SimplePage = ({
   };
 
   return (
-    <AppLayout>
-      <div style={containerStyles}>
+    <div style={containerStyles}>
         <div style={headerStyles}>
           <div style={iconStyles}>{icon}</div>
           <h1 style={titleStyles}>{title}</h1>
@@ -75,7 +73,7 @@ const SimplePage = ({
           </Card>
         )}
       </div>
-    </AppLayout>
+    </div>
   );
 };
 

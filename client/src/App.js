@@ -54,8 +54,6 @@ const PublicRoute = ({ children }) => {
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
   
-  console.log('🔍 APP DEBUG: isAuthenticated:', isAuthenticated, 'loading:', loading);
-  
   // Temporarily disable performance optimization for testing
   // const { 
   //   criticalLoaded, 
@@ -145,13 +143,11 @@ function AppContent() {
       <Route 
         path="/help" 
         element={
-          // <ProtectedRoute>
-            <AppLayout>
-              <React.Suspense fallback={<PageLoadingFallback />}>
-                <HelpPage />
-              </React.Suspense>
-            </AppLayout>
-          // </ProtectedRoute>
+          <AppLayout>
+            <React.Suspense fallback={<PageLoadingFallback />}>
+              <HelpPage />
+            </React.Suspense>
+          </AppLayout>
         } 
       />
       <Route 
@@ -258,41 +254,6 @@ function AppContent() {
           </AppLayout>
         } 
       />
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <AppLayout.Dashboard>
-              <Dashboard />
-            </AppLayout.Dashboard>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/collections" 
-        element={
-          <ProtectedRoute>
-            <CollectionsPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/help" 
-        element={
-          <ProtectedRoute>
-            <HelpPage />
-          </ProtectedRoute>
-        } 
-      />
-
       </Routes>
   );
 }
