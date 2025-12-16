@@ -18,10 +18,12 @@ const LoginForm = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
     // Clear error when user starts typing
     if (error) setError('');
   };

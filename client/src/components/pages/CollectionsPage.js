@@ -29,10 +29,27 @@ const CollectionsPage = () => {
     try {
       setLoading(true);
       const response = await collectionsAPI.getAll(filters);
-      setCollections(response.data.requests);
+      setCollections(response.data.requests || []);
     } catch (error) {
       console.error('Error loading collections:', error);
-      toast.error('Failed to load collections');
+      // Show mock data if API fails
+      setCollections([
+        {
+          _id: '1',
+          wasteCategory: 'organic',
+          status: 'pending',
+          pickupLocation: { address: '123 Main St' },
+          createdAt: new Date().toISOString(),
+        },
+        {
+          _id: '2',
+          wasteCategory: 'recyclable',
+          status: 'assigned',
+          pickupLocation: { address: '456 Oak Ave' },
+          createdAt: new Date().toISOString(),
+        }
+      ]);
+      toast.error('Using demo data - API not available');
     } finally {
       setLoading(false);
     }

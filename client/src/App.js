@@ -3,17 +3,16 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, ErrorBoundary, LoadingSpinner } from './components/ui';
 import { AppLayout } from './components/layout';
-import { LazyComponentWrapper } from './utils/performance';
-import { usePerformanceOptimization } from './hooks/usePerformanceOptimization';
-import { ProgressiveEnhancement } from './utils/networkOptimization';
 import './App.css';
 
-// Lazy load components for better performance
-const HomePage = React.lazy(() => import('./components/HomePage'));
-const LoginForm = React.lazy(() => import('./components/auth/LoginForm'));
-const SignupForm = React.lazy(() => import('./components/auth/SignupForm'));
+// Import components
+import HomePage from './components/HomePage';
+import LoginForm from './components/auth/LoginForm';
+import SignupForm from './components/auth/SignupForm';
+import SimplePage from './components/pages/SimplePage';
+
+// Lazy load dashboard and other components
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
-const DebugLogin = React.lazy(() => import('./components/DebugLogin'));
 const CollectionsPage = React.lazy(() => import('./components/pages/CollectionsPage'));
 const ProfilePage = React.lazy(() => import('./components/pages/ProfilePage'));
 const HelpPage = React.lazy(() => import('./components/pages/HelpPage'));
@@ -39,11 +38,7 @@ const ProtectedRoute = ({ children }) => {
     return <PageLoadingFallback />;
   }
   
-  return isAuthenticated ? (
-    <LazyComponentWrapper fallback={<PageLoadingFallback />}>
-      {children}
-    </LazyComponentWrapper>
-  ) : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 const PublicRoute = ({ children }) => {
@@ -53,35 +48,38 @@ const PublicRoute = ({ children }) => {
     return <PageLoadingFallback />;
   }
   
-  return !isAuthenticated ? (
-    <LazyComponentWrapper fallback={<PageLoadingFallback />}>
-      {children}
-    </LazyComponentWrapper>
-  ) : <Navigate to="/dashboard" />;
+  return !isAuthenticated ? children : <Navigate to="/dashboard" />;
 };
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
-  const { 
-    criticalLoaded, 
-    recommendations 
-  } = usePerformanceOptimization();
+  const { isAuthenticated, loading } = useAuth();
+  
+  console.log('🔍 APP DEBUG: isAuthenticated:', isAuthenticated, 'loading:', loading);
+  
+  // Temporarily disable performance optimization for testing
+  // const { 
+  //   criticalLoaded, 
+  //   recommendations 
+  // } = usePerformanceOptimization();
 
   // Show performance recommendations if any
-  React.useEffect(() => {
-    if (recommendations.length > 0 && process.env.NODE_ENV === 'development') {
-      console.log('Performance recommendations:', recommendations);
-    }
-  }, [recommendations]);
+  // React.useEffect(() => {
+  //   if (recommendations.length > 0 && process.env.NODE_ENV === 'development') {
+  //     console.log('Performance recommendations:', recommendations);
+  //   }
+  // }, [recommendations]);
 
   // Show loading screen until critical resources are loaded
-  if (!criticalLoaded) {
+  // if (!criticalLoaded) {
+  //   return <PageLoadingFallback />;
+  // }
+
+  if (loading) {
     return <PageLoadingFallback />;
   }
 
   return (
-    <ProgressiveEnhancement requiresOnline={false}>
-      <Routes>
+    <Routes>
       <Route 
         path="/" 
         element={
@@ -106,6 +104,158 @@ function AppContent() {
               <SignupForm />
             </AppLayout.Auth>
           </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <AppLayout.Dashboard>
+              <React.Suspense fallback={<PageLoadingFallback />}>
+                <Dashboard />
+              </React.Suspense>
+            </AppLayout.Dashboard>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/collections" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <React.Suspense fallback={<PageLoadingFallback />}>
+                <CollectionsPage />
+              </React.Suspense>
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <React.Suspense fallback={<PageLoadingFallback />}>
+                <ProfilePage />
+              </React.Suspense>
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/help" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <React.Suspense fallback={<PageLoadingFallback />}>
+                <HelpPage />
+              </React.Suspense>
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/collections/new" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <SimplePage
+                title="New Collection Request"
+                description="Create a new waste collection request"
+                icon="➕"
+              />
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <SimplePage
+                title="Settings"
+                description="Manage your application settings and preferences"
+                icon="⚙️"
+              />
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/reports" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <SimplePage
+                title="Reports"
+                description="View collection reports and analytics"
+                icon="📊"
+              />
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/contact" 
+        element={
+          <AppLayout>
+            <SimplePage
+              title="Contact Us"
+              description="Get in touch with our support team"
+              icon="📞"
+              showBackButton={false}
+            />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="*" 
+        element={
+          <AppLayout>
+            <div style={{ 
+              padding: '4rem 2rem', 
+              textAlign: 'center',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              <h1 style={{ 
+                fontSize: '4rem', 
+                margin: '0 0 1rem 0',
+                color: '#6b7280'
+              }}>
+                404
+              </h1>
+              <h2 style={{ 
+                fontSize: '1.5rem', 
+                margin: '0 0 1rem 0',
+                color: '#374151'
+              }}>
+                Page Not Found
+              </h2>
+              <p style={{ 
+                color: '#6b7280',
+                marginBottom: '2rem'
+              }}>
+                The page you're looking for doesn't exist.
+              </p>
+              <button
+                onClick={() => window.location.href = '/'}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  textDecoration: 'none'
+                }}
+              >
+                Go Home
+              </button>
+            </div>
+          </AppLayout>
         } 
       />
       <Route 
@@ -142,16 +292,8 @@ function AppContent() {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/debug" 
-        element={
-          <AppLayout showFooter={false}>
-            <DebugLogin />
-          </AppLayout>
-        } 
-      />
+
       </Routes>
-    </ProgressiveEnhancement>
   );
 }
 

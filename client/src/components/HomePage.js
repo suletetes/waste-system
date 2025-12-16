@@ -12,6 +12,8 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = React.useState(false);
+  
+  console.log('🔍 HOMEPAGE DEBUG: isAuthenticated:', isAuthenticated);
 
   // If user is authenticated, redirect to dashboard
   React.useEffect(() => {
@@ -26,8 +28,8 @@ const HomePage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Features data
-  const features = [
+  // Features data - memoized to prevent infinite re-renders
+  const features = React.useMemo(() => [
     {
       icon: '🏠',
       title: 'For Residents',
@@ -58,7 +60,7 @@ const HomePage = () => {
       title: 'Mobile Ready',
       description: 'Access the system from any device with our responsive design that works on desktop, tablet, and mobile.',
     },
-  ];
+  ], []);
 
   // Stagger animation for features
   const visibleFeatures = useStaggerAnimation(features, 150);
@@ -190,19 +192,35 @@ const HomePage = () => {
     textAlign: 'center',
   };
 
-  const stats = [
+  const stats = React.useMemo(() => [
     { number: '10K+', label: 'Collections Completed' },
     { number: '500+', label: 'Active Users' },
     { number: '50+', label: 'Waste Collectors' },
     { number: '99.9%', label: 'System Uptime' },
-  ];
+  ], []);
 
   const handleGetStarted = () => {
+    console.log('🔍 SIGNUP DEBUG: handleGetStarted called');
     navigate('/register');
+    console.log('🔍 SIGNUP DEBUG: navigate called');
   };
 
   const handleLogin = () => {
-    navigate('/login');
+    console.log('🔍 SIGNIN DEBUG: handleLogin called');
+    console.log('🔍 SIGNIN DEBUG: Current location:', window.location.href);
+    console.log('🔍 SIGNIN DEBUG: navigate function:', navigate);
+    
+    try {
+      navigate('/login');
+      console.log('🔍 SIGNIN DEBUG: navigate called successfully');
+      
+      // Check if location changed after a short delay
+      setTimeout(() => {
+        console.log('🔍 SIGNIN DEBUG: Location after navigate:', window.location.href);
+      }, 100);
+    } catch (error) {
+      console.error('🔍 SIGNIN DEBUG: Navigate error:', error);
+    }
   };
 
   const handleLearnMore = () => {
@@ -268,7 +286,11 @@ const HomePage = () => {
             <Button
               size="lg"
               variant="secondary"
-              onClick={handleGetStarted}
+              onClick={(e) => {
+                console.log('🔍 SIGNUP DEBUG: Button clicked!', e);
+                handleGetStarted();
+              }}
+              ripple={false}
               className="smooth-hover"
               style={{
                 fontSize: theme.typography.fontSize.lg,
@@ -280,18 +302,51 @@ const HomePage = () => {
             <Button
               size="lg"
               variant="outline"
-              onClick={handleLogin}
-              className="smooth-hover"
+              onClick={(e) => {
+                console.log('🔍 SIGNIN DEBUG: Button clicked!', e);
+                handleLogin();
+              }}
+              ripple={false}
               style={{
                 fontSize: theme.typography.fontSize.lg,
                 padding: `${theme.spacing[4]} ${theme.spacing[8]}`,
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 borderColor: 'rgba(255, 255, 255, 0.3)',
                 color: theme.colors.text.inverse,
+                cursor: 'pointer',
+                zIndex: 10,
               }}
             >
               Sign In
             </Button>
+            
+            {/* Test button */}
+            <button
+              onClick={() => {
+                console.log('🔍 TEST: Simple button clicked!');
+                console.log('🔍 TEST: Trying navigate...');
+                navigate('/login');
+                
+                // Fallback using window.location
+                setTimeout(() => {
+                  if (window.location.pathname !== '/login') {
+                    console.log('🔍 TEST: Navigate failed, using window.location');
+                    window.location.href = '/login';
+                  }
+                }, 200);
+              }}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: 'red',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginLeft: '10px'
+              }}
+            >
+              TEST LOGIN
+            </button>
           </div>
         </div>
       </section>
