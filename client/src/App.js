@@ -145,13 +145,13 @@ function AppContent() {
       <Route 
         path="/help" 
         element={
-          <ProtectedRoute>
+          // <ProtectedRoute>
             <AppLayout>
               <React.Suspense fallback={<PageLoadingFallback />}>
                 <HelpPage />
               </React.Suspense>
             </AppLayout>
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } 
       />
       <Route 

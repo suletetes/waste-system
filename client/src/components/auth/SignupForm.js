@@ -1,24 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button, Card, ErrorMessage } from '../ui';
 import { useToast } from '../ui/Toast';
-import { theme } from '../../theme';
 
 const SignupForm = () => {
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'resident',
-    profile: {
-      firstName: '',
-      lastName: '',
-      phone: '',
-      address: ''
-    }
-  });
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('resident');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -27,484 +21,478 @@ const SignupForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    if (name.startsWith('profile.')) {
-      const profileField = name.split('.')[1];
-      setFormData({
-        ...formData,
-        profile: {
-          ...formData.profile,
-          [profileField]: value
-        }
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-    
-    // Clear error when user starts typing
-    if (error) setError('');
-  };
-
-  const validateStep1 = () => {
-    if (!formData.username.trim()) {
-      setError('Username is required');
-      return false;
-    }
-    if (!formData.email.trim()) {
-      setError('Email is required');
-      return false;
-    }
-    if (!formData.password) {
-      setError('Password is required');
-      return false;
-    }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    return true;
-  };
-
   const handleNextStep = () => {
-    if (validateStep1()) {
-      setError('');
-      setStep(2);
+    console.log('🔍 REGISTER DEBUG: Moving to step 2');
+    
+    // Validate step 1
+    if (!username || !email || !password || !confirmPassword) {
+      const errorMsg = 'Please fill in all required fields';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
     }
+    
+    if (username.length < 3) {
+      const errorMsg = 'Username must be at least 3 characters long';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    if (password.length < 6) {
+      const errorMsg = 'Password must be at least 6 characters long';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      const errorMsg = 'Passwords do not match';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      const errorMsg = 'Please enter a valid email address';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    setError('');
+    setStep(2);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🔍 REGISTER DEBUG: Form submitted!', { username, email, password, role, firstName, lastName, phone, address });
+    
     setError('');
     setLoading(true);
+    toast.info('Creating your account...');
 
     try {
-      const { confirmPassword, ...registrationData } = formData;
-      const result = await register(registrationData);
+      console.log('🔍 REGISTER DEBUG: Calling register API...');
+      const registrationData = {
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        role,
+        profile: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: phone.trim(),
+          address: address.trim()
+        }
+      };
       
-      if (result.success) {
-        toast.success(`Welcome to the system, ${result.user.username}!`);
+      console.log('🔍 REGISTER DEBUG: Registration data:', registrationData);
+      const result = await register(registrationData);
+      console.log('🔍 REGISTER DEBUG: Register result:', result);
+      
+      if (result && result.success) {
+        console.log('🔍 REGISTER DEBUG: Registration successful, navigating to dashboard');
+        toast.success(`Welcome to the system, ${result.user.username}! 🎉`);
         navigate('/dashboard');
       } else {
-        setError(result.message);
+        console.log('🔍 REGISTER DEBUG: Registration failed:', result?.message);
+        const errorMsg = result?.message || 'Registration failed';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      console.error('🔍 REGISTER DEBUG: Registration error:', err);
+      let errorMsg = 'An unexpected error occurred';
+      
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        const serverData = err.response.data;
+        const serverMessage = serverData?.message || serverData?.error;
+        
+        console.log('🔍 REGISTER DEBUG: Server response data:', serverData);
+        
+        if (status === 400) {
+          // Show specific validation errors if available
+          if (serverData?.errors && Array.isArray(serverData.errors)) {
+            const validationErrors = serverData.errors.map(err => `${err.field}: ${err.message}`).join(', ');
+            errorMsg = `Validation failed: ${validationErrors}`;
+          } else {
+            errorMsg = serverMessage || 'Invalid registration data. Please check your inputs.';
+          }
+        } else if (status === 409) {
+          errorMsg = serverMessage || 'Username or email already exists. Please try different ones.';
+        } else if (status === 500) {
+          errorMsg = 'Server error. Please try again later.';
+        } else {
+          errorMsg = serverMessage || `Server error (${status}). Please try again.`;
+        }
+      } else if (err.request) {
+        // Network error
+        errorMsg = 'Cannot connect to server. Please check if the server is running on port 5000.';
+      }
+      
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const containerStyles = {
-    width: '100%',
-    maxWidth: '500px',
-    margin: '0 auto',
-  };
-
-  const headerStyles = {
-    textAlign: 'center',
-    marginBottom: theme.spacing[8],
-  };
-
-  const logoStyles = {
-    fontSize: theme.typography.fontSize['4xl'],
-    marginBottom: theme.spacing[4],
-  };
-
-  const titleStyles = {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
-    margin: `0 0 ${theme.spacing[2]} 0`,
-  };
-
-  const subtitleStyles = {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.text.secondary,
-    margin: 0,
-  };
-
-  const stepIndicatorStyles = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: theme.spacing[4],
-    marginBottom: theme.spacing[8],
-  };
-
-  const stepStyles = (isActive, isCompleted) => ({
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '2.5rem',
-    height: '2.5rem',
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: isCompleted ? theme.colors.secondary[500] : isActive ? theme.colors.primary[500] : theme.colors.gray[200],
-    color: isActive || isCompleted ? theme.colors.text.inverse : theme.colors.text.secondary,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-  });
-
-  const formStyles = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing[4],
-  };
-
-  const inputGroupStyles = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing[1],
-  };
-
-  const labelStyles = {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.text.primary,
-  };
-
-  const inputStyles = {
-    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-    border: `1px solid ${theme.colors.gray[300]}`,
-    borderRadius: theme.borderRadius.md,
-    fontSize: theme.typography.fontSize.base,
-    backgroundColor: theme.colors.surface.primary,
-    color: theme.colors.text.primary,
-    transition: `border-color ${theme.transitions.duration[200]} ${theme.transitions.timing.inOut}`,
-    outline: 'none',
-  };
-
-  const selectStyles = {
-    ...inputStyles,
-    cursor: 'pointer',
-  };
-
-  const textareaStyles = {
-    ...inputStyles,
-    minHeight: '100px',
-    resize: 'vertical',
-  };
-
-  const buttonGroupStyles = {
-    display: 'flex',
-    gap: theme.spacing[3],
-    marginTop: theme.spacing[4],
-  };
-
-  const linkStyles = {
-    textAlign: 'center',
-    marginTop: theme.spacing[6],
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
-  };
-
-  const linkTextStyles = {
-    color: theme.colors.primary[600],
-    textDecoration: 'none',
-    fontWeight: theme.typography.fontWeight.medium,
-  };
-
-  const roleDescriptions = {
-    resident: 'Request waste collection services and track pickup status',
-    collector: 'Manage collection routes and update pickup status',
-  };
-
-  const getRoleIcon = (role) => {
-    const icons = {
-      resident: '🏠',
-      collector: '🚛',
-    };
-    return icons[role] || '👤';
-  };
-
-  const handleInputFocus = (e) => {
-    e.target.style.borderColor = theme.colors.primary[400];
-    e.target.style.boxShadow = `0 0 0 3px ${theme.colors.primary[100]}`;
-  };
-
-  const handleInputBlur = (e) => {
-    e.target.style.borderColor = theme.colors.gray[300];
-    e.target.style.boxShadow = 'none';
-  };
-
   return (
-    <div style={containerStyles}>
-      <Card variant="elevated" padding="xl" shadow="lg">
-        <div style={headerStyles}>
-          <div style={logoStyles}>♻️</div>
-          <h1 style={titleStyles}>Create Your Account</h1>
-          <p style={subtitleStyles}>Join our waste management community</p>
+    <div style={{
+      maxWidth: '500px',
+      margin: '2rem auto',
+      padding: '2rem',
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      backgroundColor: '#fff',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+    }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Create Account</h2>
+      
+      {error && (
+        <div style={{
+          color: 'red',
+          margin: '10px 0',
+          padding: '10px',
+          backgroundColor: '#ffe6e6',
+          border: '1px solid #ff0000',
+          borderRadius: '4px'
+        }}>
+          {error}
         </div>
-
-        {/* Step Indicator */}
-        <div style={stepIndicatorStyles}>
-          <div style={stepStyles(step === 1, step > 1)}>
-            {step > 1 ? '✓' : '1'}
-          </div>
-          <div style={{
-            width: '3rem',
-            height: '2px',
-            backgroundColor: step > 1 ? theme.colors.secondary[500] : theme.colors.gray[300],
-          }} />
-          <div style={stepStyles(step === 2, false)}>
-            2
-          </div>
+      )}
+      
+      {/* Step Indicator */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: '2rem'
+      }}>
+        <div style={{
+          width: '30px',
+          height: '30px',
+          borderRadius: '50%',
+          backgroundColor: step >= 1 ? '#007bff' : '#ddd',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 'bold'
+        }}>
+          1
         </div>
+        <div style={{
+          width: '50px',
+          height: '2px',
+          backgroundColor: step >= 2 ? '#007bff' : '#ddd'
+        }} />
+        <div style={{
+          width: '30px',
+          height: '30px',
+          borderRadius: '50%',
+          backgroundColor: step >= 2 ? '#007bff' : '#ddd',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 'bold'
+        }}>
+          2
+        </div>
+      </div>
 
-        {error && (
-          <div style={{ marginBottom: theme.spacing[4] }}>
-            <ErrorMessage
-              type="error"
-              title="Registration Error"
-              message={error}
-              showRetry={false}
-              onDismiss={() => setError('')}
-            />
-          </div>
-        )}
-
-        <form onSubmit={step === 1 ? (e) => { e.preventDefault(); handleNextStep(); } : handleSubmit} style={formStyles}>
-          {step === 1 ? (
-            <>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text.primary,
-                margin: `0 0 ${theme.spacing[4]} 0`,
+      <form onSubmit={step === 1 ? (e) => { e.preventDefault(); handleNextStep(); } : handleSubmit}>
+        {step === 1 ? (
+          <>
+            <h3 style={{ marginBottom: '1.5rem', color: '#333' }}>Account Information</h3>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Username *
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  console.log('🔍 REGISTER DEBUG: Username changed:', e.target.value);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Choose a unique username"
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Email *
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  console.log('🔍 REGISTER DEBUG: Email changed:', e.target.value);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Enter your email address"
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Password *
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  console.log('🔍 REGISTER DEBUG: Password changed');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Must contain: uppercase, lowercase, number (min. 6 chars)"
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Confirm Password *
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  console.log('🔍 REGISTER DEBUG: Confirm password changed');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Confirm your password"
+                required
+              />
+            </div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Account Type *
+              </label>
+              <select
+                value={role}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  console.log('🔍 REGISTER DEBUG: Role changed:', e.target.value);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer'
+                }}
+                required
+              >
+                <option value="resident">🏠 Resident</option>
+                <option value="collector">🚛 Waste Collector</option>
+              </select>
+              <div style={{
+                fontSize: '14px',
+                color: '#666',
+                marginTop: '5px'
               }}>
-                Account Information
-              </h3>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="username" style={labelStyles}>
-                  Username *
+                {role === 'resident' 
+                  ? '🏠 Request waste collection services and track pickup status'
+                  : '🚛 Manage collection routes and update pickup status'
+                }
+              </div>
+            </div>
+            
+            <button 
+              type="submit" 
+              style={{
+                width: '100%',
+                padding: '12px',
+                margin: '8px 0',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '16px',
+                cursor: 'pointer'
+              }}
+            >
+              Continue to Profile →
+            </button>
+          </>
+        ) : (
+          <>
+            <h3 style={{ marginBottom: '1.5rem', color: '#333' }}>Profile Information (Optional)</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  First Name
                 </label>
                 <input
                   type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  style={inputStyles}
-                  placeholder="Choose a unique username"
-                  required
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="Your first name"
                 />
               </div>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="email" style={labelStyles}>
-                  Email Address *
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Last Name
                 </label>
                 <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  style={inputStyles}
-                  placeholder="Enter your email address"
-                  required
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="Your last name"
                 />
               </div>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="password" style={labelStyles}>
-                  Password *
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  style={inputStyles}
-                  placeholder="Create a secure password (min. 6 characters)"
-                  required
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                />
-              </div>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="confirmPassword" style={labelStyles}>
-                  Confirm Password *
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  style={inputStyles}
-                  placeholder="Confirm your password"
-                  required
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                />
-              </div>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="role" style={labelStyles}>
-                  Account Type *
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  style={selectStyles}
-                  required
-                >
-                  <option value="resident">🏠 Resident</option>
-                  <option value="collector">🚛 Waste Collector</option>
-                </select>
-                <div style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.text.secondary,
-                  marginTop: theme.spacing[1],
-                }}>
-                  {getRoleIcon(formData.role)} {roleDescriptions[formData.role]}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth={true}
+            </div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Your phone number"
+              />
+            </div>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Address
+              </label>
+              <textarea
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
+                placeholder="Your address (for collection requests)"
+                rows="3"
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                type="button"
+                onClick={() => setStep(1)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  margin: '8px 0',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
               >
-                Continue to Profile →
-              </Button>
-            </>
-          ) : (
-            <>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text.primary,
-                margin: `0 0 ${theme.spacing[4]} 0`,
-              }}>
-                Profile Information (Optional)
-              </h3>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: theme.spacing[4],
-              }}>
-                <div style={inputGroupStyles}>
-                  <label htmlFor="profile.firstName" style={labelStyles}>
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="profile.firstName"
-                    name="profile.firstName"
-                    value={formData.profile.firstName}
-                    onChange={handleChange}
-                    style={inputStyles}
-                    placeholder="Your first name"
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
-                </div>
-
-                <div style={inputGroupStyles}>
-                  <label htmlFor="profile.lastName" style={labelStyles}>
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="profile.lastName"
-                    name="profile.lastName"
-                    value={formData.profile.lastName}
-                    onChange={handleChange}
-                    style={inputStyles}
-                    placeholder="Your last name"
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
-                </div>
-              </div>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="profile.phone" style={labelStyles}>
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="profile.phone"
-                  name="profile.phone"
-                  value={formData.profile.phone}
-                  onChange={handleChange}
-                  style={inputStyles}
-                  placeholder="Your phone number"
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                />
-              </div>
-
-              <div style={inputGroupStyles}>
-                <label htmlFor="profile.address" style={labelStyles}>
-                  Address
-                </label>
-                <textarea
-                  id="profile.address"
-                  name="profile.address"
-                  value={formData.profile.address}
-                  onChange={handleChange}
-                  style={textareaStyles}
-                  placeholder="Your address (for collection requests)"
-                  rows="3"
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                />
-              </div>
-
-              <div style={buttonGroupStyles}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setStep(1)}
-                  style={{ flex: 1 }}
-                >
-                  ← Back
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  loading={loading}
-                  disabled={loading}
-                  style={{ flex: 2 }}
-                >
-                  {loading ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              </div>
-            </>
-          )}
-        </form>
-
-        <div style={linkStyles}>
-          Already have an account?{' '}
-          <Link to="/login" style={linkTextStyles}>
-            Sign in here
-          </Link>
-        </div>
-      </Card>
+                ← Back
+              </button>
+              
+              <button 
+                type="submit" 
+                style={{
+                  flex: 2,
+                  padding: '12px',
+                  margin: '8px 0',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
+      
+      <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <Link to="/login">Already have an account? Sign in</Link>
+      </div>
     </div>
   );
 };
