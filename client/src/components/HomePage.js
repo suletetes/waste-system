@@ -12,8 +12,6 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = React.useState(false);
-  
-  console.log('🔍 HOMEPAGE DEBUG: isAuthenticated:', isAuthenticated);
 
   // If user is authenticated, redirect to dashboard
   React.useEffect(() => {
@@ -200,27 +198,11 @@ const HomePage = () => {
   ], []);
 
   const handleGetStarted = () => {
-    console.log('🔍 SIGNUP DEBUG: handleGetStarted called');
     navigate('/register');
-    console.log('🔍 SIGNUP DEBUG: navigate called');
   };
 
   const handleLogin = () => {
-    console.log('🔍 SIGNIN DEBUG: handleLogin called');
-    console.log('🔍 SIGNIN DEBUG: Current location:', window.location.href);
-    console.log('🔍 SIGNIN DEBUG: navigate function:', navigate);
-    
-    try {
-      navigate('/login');
-      console.log('🔍 SIGNIN DEBUG: navigate called successfully');
-      
-      // Check if location changed after a short delay
-      setTimeout(() => {
-        console.log('🔍 SIGNIN DEBUG: Location after navigate:', window.location.href);
-      }, 100);
-    } catch (error) {
-      console.error('🔍 SIGNIN DEBUG: Navigate error:', error);
-    }
+    navigate('/login');
   };
 
   const handleLearnMore = () => {
@@ -286,10 +268,7 @@ const HomePage = () => {
             <Button
               size="lg"
               variant="secondary"
-              onClick={(e) => {
-                console.log('🔍 SIGNUP DEBUG: Button clicked!', e);
-                handleGetStarted();
-              }}
+              onClick={handleGetStarted}
               ripple={false}
               className="smooth-hover"
               style={{
@@ -302,10 +281,7 @@ const HomePage = () => {
             <Button
               size="lg"
               variant="outline"
-              onClick={(e) => {
-                console.log('🔍 SIGNIN DEBUG: Button clicked!', e);
-                handleLogin();
-              }}
+              onClick={handleLogin}
               ripple={false}
               style={{
                 fontSize: theme.typography.fontSize.lg,
@@ -319,34 +295,6 @@ const HomePage = () => {
             >
               Sign In
             </Button>
-            
-            {/* Test button */}
-            <button
-              onClick={() => {
-                console.log('🔍 TEST: Simple button clicked!');
-                console.log('🔍 TEST: Trying navigate...');
-                navigate('/login');
-                
-                // Fallback using window.location
-                setTimeout(() => {
-                  if (window.location.pathname !== '/login') {
-                    console.log('🔍 TEST: Navigate failed, using window.location');
-                    window.location.href = '/login';
-                  }
-                }, 200);
-              }}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: 'red',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                marginLeft: '10px'
-              }}
-            >
-              TEST LOGIN
-            </button>
           </div>
         </div>
       </section>

@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button, Card, ErrorMessage } from '../ui';
 import { useToast } from '../ui/Toast';
-import { theme } from '../../theme';
 
 const LoginForm = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -17,231 +13,187 @@ const LoginForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Clear error when user starts typing
-    if (error) setError('');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🔍 LOGIN DEBUG: Form submitted!', { email, password });
+    
+    // Client-side validation with toast messages
+    if (!email || !password) {
+      const errorMsg = 'Please fill in all fields';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      const errorMsg = 'Please enter a valid email address';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
     setError('');
     setLoading(true);
+    toast.info('Signing you in...');
 
     try {
-      const result = await login(formData);
+      console.log('🔍 LOGIN DEBUG: Calling login API...');
+      const loginData = {
+        email: email.trim().toLowerCase(),
+        password
+      };
       
-      if (result.success) {
-        toast.success(`Welcome back, ${result.user.username}!`);
+      console.log('🔍 LOGIN DEBUG: Login data:', loginData);
+      const result = await login(loginData);
+      console.log('🔍 LOGIN DEBUG: Login result:', result);
+      
+      if (result && result.success) {
+        console.log('🔍 LOGIN DEBUG: Login successful, navigating to dashboard');
+        toast.success(`Welcome back, ${result.user.username}! 🎉`);
         navigate('/dashboard');
       } else {
-        setError(result.message);
+        console.log('🔍 LOGIN DEBUG: Login failed:', result?.message);
+        const errorMsg = result?.message || 'Login failed';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      console.error('🔍 LOGIN DEBUG: Login error:', err);
+      let errorMsg = 'An unexpected error occurred';
+      
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        const serverMessage = err.response.data?.message || err.response.data?.error;
+        
+        if (status === 400) {
+          errorMsg = serverMessage || 'Invalid email or password';
+        } else if (status === 401) {
+          errorMsg = serverMessage || 'Invalid email or password';
+        } else if (status === 404) {
+          errorMsg = 'Account not found. Please check your email or sign up.';
+        } else if (status === 500) {
+          errorMsg = 'Server error. Please try again later.';
+        } else {
+          errorMsg = serverMessage || `Server error (${status}). Please try again.`;
+        }
+      } else if (err.request) {
+        // Network error
+        errorMsg = 'Cannot connect to server. Please check if the server is running on port 5000.';
+      }
+      
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const containerStyles = {
-    width: '100%',
-    maxWidth: '400px',
-    margin: '0 auto',
-  };
-
-  const headerStyles = {
-    textAlign: 'center',
-    marginBottom: theme.spacing[8],
-  };
-
-  const logoStyles = {
-    fontSize: theme.typography.fontSize['4xl'],
-    marginBottom: theme.spacing[4],
-  };
-
-  const titleStyles = {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
-    margin: `0 0 ${theme.spacing[2]} 0`,
-  };
-
-  const subtitleStyles = {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.text.secondary,
-    margin: 0,
-  };
-
-  const formStyles = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing[4],
-  };
-
-  const inputGroupStyles = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing[1],
-  };
-
-  const labelStyles = {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.text.primary,
-  };
-
-  const inputStyles = {
-    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-    border: `1px solid ${theme.colors.gray[300]}`,
-    borderRadius: theme.borderRadius.md,
-    fontSize: theme.typography.fontSize.base,
-    backgroundColor: theme.colors.surface.primary,
-    color: theme.colors.text.primary,
-    transition: `border-color ${theme.transitions.duration[200]} ${theme.transitions.timing.inOut}`,
-    outline: 'none',
-  };
-
-  const linkStyles = {
-    textAlign: 'center',
-    marginTop: theme.spacing[6],
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
-  };
-
-  const linkTextStyles = {
-    color: theme.colors.primary[600],
-    textDecoration: 'none',
-    fontWeight: theme.typography.fontWeight.medium,
-  };
-
-  // Demo credentials info
-  const demoCredentialsStyles = {
-    marginTop: theme.spacing[6],
-    padding: theme.spacing[4],
-    backgroundColor: theme.colors.primary[50],
-    borderRadius: theme.borderRadius.md,
-    border: `1px solid ${theme.colors.primary[200]}`,
-  };
-
-  const demoTitleStyles = {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary[700],
-    margin: `0 0 ${theme.spacing[2]} 0`,
-  };
-
-  const demoListStyles = {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary[600],
-    margin: 0,
-    paddingLeft: theme.spacing[4],
-  };
-
   return (
-    <div style={containerStyles}>
-      <Card variant="elevated" padding="xl" shadow="lg">
-        <div style={headerStyles}>
-          <div style={logoStyles}>♻️</div>
-          <h1 style={titleStyles}>Welcome Back</h1>
-          <p style={subtitleStyles}>Sign in to your waste management account</p>
+    <div style={{
+      maxWidth: '400px',
+      margin: '2rem auto',
+      padding: '2rem',
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      backgroundColor: '#fff',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+    }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Login</h2>
+      
+      {error && (
+        <div style={{
+          color: 'red',
+          margin: '10px 0',
+          padding: '10px',
+          backgroundColor: '#ffe6e6',
+          border: '1px solid #ff0000',
+          borderRadius: '4px'
+        }}>
+          {error}
         </div>
-
-        {error && (
-          <div style={{ marginBottom: theme.spacing[4] }}>
-            <ErrorMessage
-              type="error"
-              title="Login Failed"
-              message={error}
-              showRetry={false}
-              onDismiss={() => setError('')}
-            />
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={formStyles}>
-          <div style={inputGroupStyles}>
-            <label htmlFor="email" style={labelStyles}>
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              style={inputStyles}
-              placeholder="Enter your email"
-              required
-              onFocus={(e) => {
-                e.target.style.borderColor = theme.colors.primary[400];
-                e.target.style.boxShadow = `0 0 0 3px ${theme.colors.primary[100]}`;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = theme.colors.gray[300];
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-
-          <div style={inputGroupStyles}>
-            <label htmlFor="password" style={labelStyles}>
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              style={inputStyles}
-              placeholder="Enter your password"
-              required
-              onFocus={(e) => {
-                e.target.style.borderColor = theme.colors.primary[400];
-                e.target.style.boxShadow = `0 0 0 3px ${theme.colors.primary[100]}`;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = theme.colors.gray[300];
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth={true}
-            loading={loading}
-            disabled={loading || !formData.email || !formData.password}
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </Button>
-        </form>
-
-        <div style={linkStyles}>
-          Don't have an account?{' '}
-          <Link to="/register" style={linkTextStyles}>
-            Create one here
-          </Link>
+      )}
+      
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Email:
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              console.log('🔍 LOGIN DEBUG: Email changed:', e.target.value);
+            }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter your email"
+            required
+          />
         </div>
-
-        {/* Demo Credentials */}
-        <div style={demoCredentialsStyles}>
-          <div style={demoTitleStyles}>Demo Credentials:</div>
-          <ul style={demoListStyles}>
-            <li><strong>Admin:</strong> admin@wastemanagement.com / Admin123!</li>
-            <li><strong>Collector:</strong> john.collector@wastemanagement.com / Collector123!</li>
-            <li><strong>Resident:</strong> alice.resident@email.com / Resident123!</li>
-          </ul>
+        
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Password:
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              console.log('🔍 LOGIN DEBUG: Password changed');
+            }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter your password"
+            required
+          />
         </div>
-      </Card>
+        
+        <button 
+          type="submit" 
+          style={{
+            width: '100%',
+            padding: '12px',
+            margin: '8px 0',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            cursor: 'pointer'
+          }}
+          disabled={loading}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
+      
+      <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <Link to="/register">Don't have an account? Sign up</Link>
+      </div>
+      
+      <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+        <h4>Demo Credentials:</h4>
+        <p><strong>Admin:</strong> admin@wastemanagement.com / Admin123!</p>
+        <p><strong>Collector:</strong> john.collector@wastemanagement.com / Collector123!</p>
+        <p><strong>Resident:</strong> alice.resident@email.com / Resident123!</p>
+      </div>
     </div>
   );
 };
