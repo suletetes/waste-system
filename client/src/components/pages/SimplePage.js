@@ -44,35 +44,34 @@ const SimplePage = ({
 
   return (
     <div style={containerStyles}>
-        <div style={headerStyles}>
-          <div style={iconStyles}>{icon}</div>
-          <h1 style={titleStyles}>{title}</h1>
-          {description && (
-            <p style={descriptionStyles}>{description}</p>
-          )}
-          {showBackButton && (
-            <Button
-              variant="outline"
-              onClick={() => navigate(-1)}
-              style={{ marginRight: theme.spacing[3] }}
-            >
-              ← Back
-            </Button>
-          )}
-          <Button
-            variant="primary"
-            onClick={() => navigate('/dashboard')}
-          >
-            Go to Dashboard
-          </Button>
-        </div>
-
-        {children && (
-          <Card padding="lg">
-            {children}
-          </Card>
+      <div style={headerStyles}>
+        <div style={iconStyles}>{icon}</div>
+        <h1 style={titleStyles}>{title}</h1>
+        {description && (
+          <p style={descriptionStyles}>{description}</p>
         )}
+        {showBackButton && (
+          <Button
+            variant="outline"
+            onClick={() => navigate(-1)}
+            style={{ marginRight: theme.spacing[3] }}
+          >
+            ← Back
+          </Button>
+        )}
+        <Button
+          variant="primary"
+          onClick={() => navigate('/dashboard')}
+        >
+          Go to Dashboard
+        </Button>
       </div>
+
+      {children && (
+        <Card padding="lg">
+          {children}
+        </Card>
+      )}
     </div>
   );
 };

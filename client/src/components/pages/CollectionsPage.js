@@ -109,7 +109,8 @@ const CollectionsPage = () => {
   };
 
   return (
-    <div style={headerStyles}>
+    <div>
+      <div style={headerStyles}>
         <h1 style={titleStyles}>{getPageTitle()}</h1>
         <div style={{ display: 'flex', gap: theme.spacing[3] }}>
           {user?.role === 'resident' && (
